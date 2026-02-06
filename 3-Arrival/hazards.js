@@ -74,45 +74,33 @@ class Bomb {
   }
 }
 
-class EnemySnake {
+class EnemySnake extends Vehicle {
   constructor(y, speed) {
-    this.pos = createVector(-50, y);
+    // choose start x based on direction
+    let startX = (speed < 0) ? width + 50 : -50;
+    super(startX, y);
     this.vel = createVector(speed, 0);
     this.segments = [];
     this.length = 8;
-    this.r = 20; 
-    
-    // Choose side to spawn based on speed direction
-    if (speed < 0) {
-        this.pos.x = width + 50;
-        this.vel.x = -abs(speed); // Go Left
-    } else {
-        this.pos.x = -50;
-        this.vel.x = abs(speed); // Go Right
-    }
+    this.r = 20;
 
-    // Init segments offscreen
-    for(let i=0; i<this.length; i++) {
-        let xOffset = (this.vel.x > 0) ? -i*25 : i*25;
-        this.segments.push(createVector(this.pos.x + xOffset, y));
+    // Init segments behind the head
+    for (let i = 0; i < this.length; i++) {
+      let xOffset = (this.vel.x > 0) ? -i * 25 : i * 25;
+      this.segments.push(createVector(this.pos.x + xOffset, y));
     }
   }
 
   update() {
+    // Move head
     this.pos.add(this.vel);
-    
-    // Simple sinusoidal movement for the "Snake" feeling without complex IK
-    for(let i=0; i<this.length; i++) {
-        // Each segment follows the head's x, but with a delay in time for the sine wave y
-        let seg = this.segments[i];
-        
-        // Move X
-        seg.x += this.vel.x;
-        
-        // Wavy Y
-        // Calculate "time" offset for wave
-        let wave = sin(frameCount * 0.2 + i * 0.5) * 5;
-        seg.y = this.pos.y + wave;
+
+    // Simple sinusoidal movement for the "Snake" feeling
+    for (let i = 0; i < this.length; i++) {
+      let seg = this.segments[i];
+      seg.x += this.vel.x;
+      let wave = sin(frameCount * 0.2 + i * 0.5) * 5;
+      seg.y = this.pos.y + wave;
     }
   }
 
@@ -120,34 +108,62 @@ class EnemySnake {
     // Segments
     stroke(0);
     strokeWeight(2);
-    for(let i=0; i<this.length; i++) {
-        fill(150 + i*10, 0, 50 + i*20); // Purple gradiant
-        circle(this.segments[i].x, this.segments[i].y, this.r * 2);
+    for (let i = 0; i < this.length; i++) {
+      fill(150 + i * 10, 0, 50 + i * 20);
+      circle(this.segments[i].x, this.segments[i].y, this.r * 2);
     }
 
-    // Head
-    fill(100, 0, 0); // Dark Red Head
-    circle(this.pos.x, this.pos.y + sin(frameCount*0.2)*5, this.r * 2.5);
-    
-    // Evil Eyes
+    // Head (with slight bob)
+    fill(100, 0, 0);
+    circle(this.pos.x, this.pos.y + sin(frameCount * 0.2) * 5, this.r * 2.5);
+
+    // Eyes
     fill(255, 255, 0);
     ellipse(this.pos.x, this.pos.y - 8, 8, 8);
     ellipse(this.pos.x, this.pos.y + 8, 8, 8);
+
+    // Debug visuals when enabled
+    if (Vehicle.debug) {
+      // Velocity vector
+      push();
+      stroke(0, 255, 255);
+      strokeWeight(2);
+      line(this.pos.x, this.pos.y, this.pos.x + this.vel.x * 10, this.pos.y + this.vel.y * 10);
+      pop();
+
+      // Small markers on segments
+      for (let i = 0; i < this.length; i++) {
+        push();
+        noFill();
+        stroke(0, 255, 255, 150);
+        circle(this.segments[i].x, this.segments[i].y, 8);
+        pop();
+      }
+
+      // Label
+      push();
+      noStroke();
+      fill(0, 255, 255);
+      textAlign(CENTER);
+      textSize(12);
+      text("EnemySnake", this.pos.x, this.pos.y - 20);
+      pop();
+    }
   }
 
   checkCollision(targetPos, targetRadius) {
-     // Check head
-     if (dist(this.pos.x, this.pos.y, targetPos.x, targetPos.y) < this.r + 10 + targetRadius) return true;
-     
-     // Check body
-     for(let seg of this.segments) {
-         if (dist(seg.x, seg.y, targetPos.x, targetPos.y) < this.r + targetRadius) return true;
-     }
-     return false;
+    // Head
+    if (dist(this.pos.x, this.pos.y, targetPos.x, targetPos.y) < this.r + 10 + targetRadius) return true;
+
+    // Body
+    for (let seg of this.segments) {
+      if (dist(seg.x, seg.y, targetPos.x, targetPos.y) < this.r + targetRadius) return true;
+    }
+    return false;
   }
-  
+
   isOffScreen() {
-      if (this.vel.x > 0) return this.segments[this.length-1].x > width + 50;
-      else return this.segments[this.length-1].x < -50;
+    if (this.vel.x > 0) return this.segments[this.length - 1].x > width + 50;
+    else return this.segments[this.length - 1].x < -50;
   }
 }

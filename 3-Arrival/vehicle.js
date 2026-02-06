@@ -1,5 +1,6 @@
 class Vehicle {
   static debug = false;
+  static debugObstacleColor = '#00FFFF';
 
   constructor(x, y) {
     this.pos = createVector(x, y);
@@ -122,6 +123,51 @@ class Vehicle {
    */
   }
 
+  // Centralisé: dessine des aides de debug si des informations sont passées
+  debugDraw(data = {}) {
+    if (!Vehicle.debug) return;
+
+    // Dessine l'obstacle le plus proche
+    if (data.obstacleLePlusProche) {
+      push();
+      fill(Vehicle.debugObstacleColor || "red");
+      noStroke();
+      circle(data.obstacleLePlusProche.pos.x, data.obstacleLePlusProche.pos.y, data.obstacleLePlusProche.r * 2);
+      pop();
+    }
+
+    // Ligne 'ahead' vers le point au bout de ahead
+    if (data.pointAuBoutDeAhead) {
+      push();
+      stroke("yellow");
+      strokeWeight(2);
+      line(this.pos.x, this.pos.y, data.pointAuBoutDeAhead.x, data.pointAuBoutDeAhead.y);
+      pop();
+    }
+
+    // Debug Wander: cercle de la zone et ligne vers le point de wander
+    if (data.wanderPoint) {
+      push();
+      stroke(255, 50);
+      noFill();
+      let radius = data.wanderRadius || this.wanderRadius || 0;
+      circle(data.wanderPoint.x, data.wanderPoint.y, radius * 2);
+      line(this.pos.x, this.pos.y, data.wanderPoint.x, data.wanderPoint.y);
+      fill("green");
+      if (data.wanderTarget) circle(data.wanderTarget.x, data.wanderTarget.y, 8);
+      pop();
+    }
+
+    // Cercle autour du véhicule (rayon)
+    if (data.showSelfCircle) {
+      push();
+      noFill();
+      stroke(255, 100);
+      circle(this.pos.x, this.pos.y, this.r * 2);
+      pop();
+    }
+  }
+
   edges() {
     if (this.pos.x > width + this.r) {
       this.pos.x = -this.r;
@@ -150,6 +196,45 @@ class Target extends Vehicle {
     push();
     translate(this.pos.x, this.pos.y);
     circle(0, 0, this.r * 2);
+    pop();
+  }
+}
+
+class Obstacle extends Vehicle {
+  constructor(x, y, size = 50) {
+    super(x, y);
+    this.size = size; // visual diameter
+    this.r = this.size / 2; // radius used elsewhere
+    this.angle = 0;
+    this.spin = random(-0.05, 0.05);
+    this.type = "SPIKE";
+    // give it a small random velocity so it moves
+    this.vel = p5.Vector.random2D().mult(random(0.5, 2));
+  }
+
+  show() {
+    push();
+    translate(this.pos.x, this.pos.y);
+    rotate(this.angle);
+
+    // Spike ball visual (kept from sketch drawObstacles)
+    stroke(150, 50, 50);
+    fill(50, 0, 0);
+    beginShape();
+    for (let a = 0; a < TWO_PI; a += 0.5) {
+      let r = (this.size / 2);
+      if (a % 1.0 > 0.4) r += 10; // Spikes
+      let sx = r * cos(a);
+      let sy = r * sin(a);
+      vertex(sx, sy);
+    }
+    endShape(CLOSE);
+
+    // Inner Core
+    fill(255, 100, 100);
+    noStroke();
+    circle(0, 0, this.size / 3);
+
     pop();
   }
 }

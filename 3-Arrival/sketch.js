@@ -5,6 +5,8 @@ let appleVel; // Moving apple velocity
 let score = 0;
 let highScore = 0;
 let level = 1;
+let levelMessageTimer = 0;
+let levelMessageText = "";
 let gameState = "MENU"; // MENU, PLAY_SNAKE, PLAY_APPLE, GAME_OVER
 let font;
 
@@ -65,16 +67,14 @@ function resetGame(mode) {
 
 function spawnObstacles(count) {
   for(let i=0; i<count; i++){
-    let pos = createVector(random(50, width-50), random(50, height-50));
-    let vel = p5.Vector.random2D().mult(random(0.5, 2)); // Dynamic movement
-    obstacles.push({
-      pos: pos,
-      vel: vel,
-      angle: random(TWO_PI),
-      spin: random(-0.05, 0.05),
-      size: random(40, 70),
-      type: "SPIKE"
-    });
+    let x = random(50, width-50);
+    let y = random(50, height-50);
+    let size = random(40, 70);
+    let o = new Obstacle(x, y, size);
+    // override spin and initial angle for variety
+    o.angle = random(TWO_PI);
+    o.spin = random(-0.05, 0.05);
+    obstacles.push(o);
   }
 }
 
@@ -128,10 +128,11 @@ function spawnPowerup() {
 
 function updateObstacles() {
   for(let obs of obstacles) {
-    obs.pos.add(obs.vel);
+    // use Vehicle.update to apply velocity
+    obs.update();
     obs.angle += obs.spin;
-    
-    // Bounce off walls
+
+    // Bounce off walls by flipping velocity
     if(obs.pos.x < 0 || obs.pos.x > width) obs.vel.x *= -1;
     if(obs.pos.y < 0 || obs.pos.y > height) obs.vel.y *= -1;
   }
@@ -163,6 +164,58 @@ function draw() {
     playAsApple();
   } else if (gameState === "GAME_OVER") {
     drawGameOver();
+  }
+
+  // Global debug overlays for obstacles & food
+  if (Vehicle.debug) {
+    // Obstacles: use their debugDraw (they inherit Vehicle)
+    for (let obs of obstacles) {
+      if (typeof obs.debugDraw === 'function') obs.debugDraw({ showSelfCircle: true });
+      // draw velocity vector for obstacle
+      if (obs.vel) {
+        push();
+        stroke(Vehicle.debugObstacleColor || '#FF0000');
+        strokeWeight(2);
+        line(obs.pos.x, obs.pos.y, obs.pos.x + obs.vel.x * 10, obs.pos.y + obs.vel.y * 10);
+        pop();
+      }
+      // small center marker
+      push();
+      noStroke();
+      fill(Vehicle.debugObstacleColor || '#FF0000');
+      circle(obs.pos.x, obs.pos.y, 6);
+      pop();
+    }
+
+    // Apple / food debug: position and velocity
+    if (typeof apple !== 'undefined' && apple) {
+      push();
+      noFill();
+      stroke(0, 255, 0, 180);
+      strokeWeight(2);
+      circle(apple.x, apple.y, 30);
+      // velocity vector
+      if (typeof appleVel !== 'undefined' && appleVel) {
+        stroke(0, 255, 0);
+        strokeWeight(2);
+        line(apple.x, apple.y, apple.x + appleVel.x * 10, apple.y + appleVel.y * 10);
+      }
+      pop();
+    }
+  }
+
+  // Level-up message overlay
+  if (levelMessageTimer > 0) {
+    let alpha = map(levelMessageTimer, 0, 180, 0, 255);
+    push();
+    textAlign(CENTER, CENTER);
+    textSize(56);
+    fill(255, 215, 0, alpha);
+    stroke(0, 150, 200, alpha);
+    strokeWeight(3);
+    text(levelMessageText, width / 2, height / 3);
+    pop();
+    levelMessageTimer--;
   }
 }
 
@@ -245,6 +298,7 @@ function playAsSnake() {
     vehicle.applyForce(steeringForce);
     vehicle.update();
     vehicle.show();
+    if (typeof vehicle.debugDraw === 'function') vehicle.debugDraw({ showSelfCircle: true });
   });
   
   // Draw Shield visual on Head
@@ -322,6 +376,7 @@ function playAsApple() {
   
   if (snakeFrozen) {
       vehicles.forEach(v => v.show());
+      vehicles.forEach(v => { if (typeof v.debugDraw === 'function') v.debugDraw({ showSelfCircle: true }); });
       push();
       fill(0, 255, 255);
       textAlign(CENTER);
@@ -340,6 +395,7 @@ function playAsApple() {
         vehicle.applyForce(steeringForce);
         vehicle.update();
         vehicle.show();
+        if (typeof vehicle.debugDraw === 'function') vehicle.debugDraw({ showSelfCircle: true });
       });
   }
 
@@ -411,6 +467,9 @@ function checkLevelProgression() {
       
       // Visual Feedback
       spawnExplosion(width/2, height/2, color(0, 255, 255));
+      // Show temporary level message (3 seconds)
+      levelMessageTimer = 180;
+      levelMessageText = "LEVEL " + level;
   }
 }
 
@@ -472,33 +531,9 @@ function checkHazardCollisions(pos, radius) {
 // --- VISUALS & UI ---
 
 function drawObstacles() {
-    noFill();
-    strokeWeight(2);
-    for(let obs of obstacles) {
-        push();
-        translate(obs.pos.x, obs.pos.y);
-        rotate(obs.angle);
-        
-        // Spike ball visual
-        stroke(150, 50, 50); // Reddish grey
-        fill(50, 0, 0); 
-        beginShape();
-        for (let a = 0; a < TWO_PI; a += 0.5) {
-            let r = (obs.size / 2);
-            if (a % 1.0 > 0.4) r += 10; // Spikes
-            let sx = r * cos(a);
-            let sy = r * sin(a);
-            vertex(sx, sy);
-        }
-        endShape(CLOSE);
-        
-        // Inner Core
-        fill(255, 100, 100);
-        noStroke();
-        circle(0, 0, obs.size/3);
-        
-        pop();
-    }
+  for(let obs of obstacles) {
+    if (typeof obs.show === 'function') obs.show();
+  }
 }
 
 function drawPowerups() {
@@ -644,6 +679,10 @@ function drawHUD() {
 // --- INPUTS ---
 
 function keyPressed() {
+  if (key === 'd' || key === 'D') {
+    Vehicle.debug = !Vehicle.debug;
+    return;
+  }
   if (gameState === "MENU") {
     if (key === '1') {
       resetGame("SNAKE");
