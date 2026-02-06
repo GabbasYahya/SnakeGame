@@ -4,11 +4,13 @@ let apple;
 let appleVel; // Moving apple velocity
 let score = 0;
 let highScore = 0;
+let bestName = "";
 let level = 1;
 let levelMessageTimer = 0;
 let levelMessageText = "";
 let gameState = "MENU"; // MENU, PLAY_SNAKE, PLAY_APPLE, GAME_OVER
 let font;
+let gameOverProcessed = false;
 
 // Obstacles & Powerups
 let obstacles = []; // Array of Objects {pos, vel, angle, type}
@@ -34,12 +36,15 @@ function setup() {
   // Initialize standard snake size
   resetSnake(10);
   spawnApple();
+  // Load current best score from local storage
+  loadBestFromStorage();
 }
 
 function resetGame(mode) {
   score = 0;
   level = 1;
   shieldActive = false;
+  gameOverProcessed = false;
   
   // Dynamic Obstacles
   obstacles = [];
@@ -164,6 +169,7 @@ function draw() {
     playAsApple();
   } else if (gameState === "GAME_OVER") {
     drawGameOver();
+    processGameOverOnce();
   }
 
   // Global debug overlays for obstacles & food
@@ -646,7 +652,11 @@ function drawGameOver() {
   textSize(40);
   text("Score: " + score, width/2, height/2); 
   textSize(20);
-  text("High Score: " + highScore, width/2, height/2 + 50);
+  if (bestName && bestName.length > 0) {
+    text("Meilleur: " + bestName + " (" + highScore + ")", width/2, height/2 + 50);
+  } else {
+    text("Meilleur: " + highScore, width/2, height/2 + 50);
+  }
   text("Press 'M' for Menu", width/2, height/2 + 90);
 }
 
@@ -655,7 +665,11 @@ function drawHUD() {
   textSize(20);
   textAlign(LEFT, TOP);
   text("Score: " + score, 20, 20);
-  text("High Score: " + highScore, 20, 45);
+  if (bestName && bestName.length > 0) {
+    text("Meilleur: " + bestName + " (" + highScore + ")", 20, 45);
+  } else {
+    text("Meilleur: " + highScore, 20, 45);
+  }
   
   // Level Display
   fill(255, 215, 0);
@@ -674,6 +688,81 @@ function drawHUD() {
       fill(100, 100, 255);
       text("SHIELD: " + Math.ceil(shieldTimer/60), 20, 110);
   }
+}
+
+// --- SCORE STORAGE & CSV EXPORT ---
+function processGameOverOnce() {
+  if (gameOverProcessed) return;
+  gameOverProcessed = true;
+  if (score <= 0) return;
+  let name = prompt("Entrez votre nom pour enregistrer le score:", "");
+  if (name === null) return; // user cancelled
+  name = name.trim();
+  if (name.length === 0) return;
+  // Save score in localStorage (best score per user)
+  saveScoreToStorage(name, score);
+  loadBestFromStorage();
+  alert('Score enregistré localement.');
+}
+
+// Try posting to a configured server endpoint. If succeeds, optionally trigger CSV download from server.
+async function sendScoreToServer(name, score) {
+  // deprecated
+  return Promise.reject(new Error('Server posting deprecated in local-only mode'));
+}
+
+async function fetchHighScoreFromServer() {
+  // deprecated in local-only mode
+}
+
+function saveScoreToStorage(name, score) {
+  let raw = localStorage.getItem('scores');
+  let scores = {};
+  try { scores = raw ? JSON.parse(raw) : {}; } catch (e) { scores = {}; }
+  let prev = scores[name] || 0;
+  if (score > prev) scores[name] = score;
+  localStorage.setItem('scores', JSON.stringify(scores));
+}
+
+function downloadScoresCSV() {
+  let raw = localStorage.getItem('scores');
+  let scores = {};
+  try { scores = raw ? JSON.parse(raw) : {}; } catch (e) { scores = {}; }
+  let lines = ['name,score'];
+  for (let n in scores) {
+    lines.push(escapeCsv(n) + ',' + scores[n]);
+  }
+  let csv = lines.join('\n');
+  let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  let url = URL.createObjectURL(blob);
+  let a = document.createElement('a');
+  a.href = url;
+  a.download = 'scores.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function escapeCsv(str) {
+  if (str.indexOf(',') !== -1 || str.indexOf('"') !== -1 || str.indexOf('\n') !== -1) {
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
+}
+
+function loadBestFromStorage() {
+  let raw = localStorage.getItem('scores');
+  if (!raw) { highScore = 0; bestName = ''; return; }
+  let scores = {};
+  try { scores = JSON.parse(raw); } catch (e) { scores = {}; }
+  let best = 0; let name = '';
+  for (let n in scores) {
+    let s = scores[n] || 0;
+    if (s > best) { best = s; name = n; }
+  }
+  highScore = best;
+  bestName = name;
 }
 
 // --- INPUTS ---
