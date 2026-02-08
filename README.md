@@ -6,6 +6,32 @@ Auteurs : GABBAS Yahya & AIT EL MAHJOUB Salaheddine
 
 Ce jeu est une version modernisée et "arcade" du classique Snake, développé en **JavaScript** avec la bibliothèque **p5.js**. Il intègre des mécaniques de survie, des combats de boss, des power-ups et une gestion dynamique de la difficulté.
 
+---
+ 
+## 🎬 Vidéo & Démo
+
+Voici une courte vidéo de présentation du jeu :
+
+[![Regarder la vidéo](https://img.youtube.com/vi/qc9L1uSe6Kg/hqdefault.jpg)](https://www.youtube.com/watch?v=qc9L1uSe6Kg)
+
+Lien vers la démo hébergée :
+
+[Voir la démo en ligne](https://gabbasyahya.github.io/SnakeGame/index.html)
+
+
+---
+
+## 💡 Concept du Jeu
+
+"Snake vs Apple" reprend la mécanique classique du Snake mais la modernise : la nourriture est mobile et intelligente, des ennemis et obstacles dynamiques ajoutent une dimension action/survie, et des phases de boss viennent casser le rythme pour proposer des combats scénarisés. Le mélange de comportements (seek/pursue/avoid) crée des situations imprévisibles et engageantes.
+
+## 🎯 Objectif du Projet
+
+- Créer une démo jouable et visuelle montrant des techniques de mouvement (steering behaviours) et de game design simple.
+- Fournir un projet hébergeable en statique (GitHub Pages) avec options d'export/import de leaderboard pour conserver les meilleurs scores.
+- Offrir une base pédagogique pour apprendre p5.js, les comportements d'agents et la structuration d'un petit jeu JavaScript.
+
+
 ### 🎮 Fonctionnalités Principales
 
 *   **Système de Vies** : Le joueur commence avec 3 cœurs (affichés en haut à gauche).
@@ -20,6 +46,21 @@ Ce jeu est une version modernisée et "arcade" du classique Snake, développé e
 *   **Boss** : Apparaît tous les 5 niveaux avec des phases d'attaque différentes.
 *   **Audio** : Musique de fond avec un **slider de volume** en temps réel.
 *   **Leaderboard** : Sauvegarde des 5 meilleurs scores en local (Local Storage).
+
+
+## 🕹️ Contrôles et Gameplay
+
+- **Modes** :
+    - `PLAY_SNAKE` — vous contrôlez le serpent, l'objectif est d'attraper la pomme mobile.
+   
+- **Contrôles** :
+   - **Souris** :
+        - En `PLAY_SNAKE` : le serpent suit la position de la souris (pas besoin de maintenir le bouton).
+        
+    - **Clavier (menu)** : `1` lance `Play Snake`, `M` revient au menu, `d` active le debug.
+    - **Audio** : slider `Volume` (haut droite) pour ajuster en temps réel.
+
+
 
 ---
 
@@ -39,19 +80,9 @@ Voici comment le code est organisé dans le dossier  :
 
 ---
 
-
-
-## 🕹️ Contrôles et Gameplay
-
-*   **Flèches Directionnelles** : Diriger le serpent.
-*   **Slider de Volume** (Haut Droite) : Ajuster le volume de la musique.
-*   **Saisie du Nom** : À la fin de la partie, si le score est dans le Top 5, un champ apparaît.
-
----
-
 ## 🎞️ Écrans du Jeu
 
-- **Menu principal** : titre, boutons `Play Snake` / `Play Apple`, sélection de couleur, leaderboard et import/export CSV.
+- **Menu principal** : titre, boutons `Play Snake`  sélection de couleur, leaderboard et import/export CSV.
 - **Écran de jeu (Gameplay)** : affichage du canvas p5, HUD (score, vies, level, volume), power-ups et obstacles.
 - **Transition de niveau / Message** : bref écran/overlay montrant "LEVEL X" ou "BOSS FIGHT".
 - **Pause / Overlay d'information** : (message, règles rapides ou loader si nécessaire).
@@ -70,39 +101,10 @@ Le projet utilise plusieurs comportements de mouvement pour les entités (apple 
 
 Ces comportements sont combinés via des poids/coefficients pour obtenir des mouvements crédibles (e.g. `force = seek*1.0 + avoid*1.5 + wander*0.2`).
 
-## 🕹️ Jouer (Rappel rapide)
+---
 
-- **Modes** :
-    - `PLAY_SNAKE` — vous contrôlez le serpent, l'objectif est d'attraper la pomme mobile.
-    - `PLAY_APPLE` — vous êtes la pomme, objectif : survivre le plus longtemps.
-- **Contrôles** :
-    - **Souris** : dirige le serpent/la pomme (le serpent suit la souris).
-    - **Clavier (menu)** : `1` lance `Play Snake`, `2` lance `Play Apple`, `M` revient au menu, `d` active le debug.
-    - **Audio** : slider `Volume` (haut droite) pour ajuster en temps réel.
+## ⚠️ Difficultés rencontrées
 
-## 💡 Concept du Jeu
-
-"Snake vs Apple" reprend la mécanique classique du Snake mais la modernise : la nourriture est mobile et intelligente, des ennemis et obstacles dynamiques ajoutent une dimension action/survie, et des phases de boss viennent casser le rythme pour proposer des combats scénarisés. Le mélange de comportements (seek/pursue/avoid) crée des situations imprévisibles et engageantes.
-
-## 🎯 Objectif du Projet
-
-- Créer une démo jouable et visuelle montrant des techniques de mouvement (steering behaviours) et de game design simple.
-- Fournir un projet hébergeable en statique (GitHub Pages) avec options d'export/import de leaderboard pour conserver les meilleurs scores.
-- Offrir une base pédagogique pour apprendre p5.js, les comportements d'agents et la structuration d'un petit jeu JavaScript.
-
-## 🎬 Vidéo & Démo
-
-Voici une courte vidéo de présentation du jeu :
-
-<video controls width="720">
-    <source src="assets/%C3%89crans%20du%20Jeu/Video.mp4" type="video/mp4">
-    Votre navigateur ne supporte pas la lecture vidéo.
-</video>
-
-Lien vers la démo hébergée :
-
-[Voir la démo en ligne](https://gabbasyahya.github.io/SnakeGame/3-Arrival/index.html)
-
-
+- Performances de démarrage : certains médias (audio, polices, fichiers volumineux) et le chargement synchrone des scripts peuvent ralentir l'affichage initial.
 
 

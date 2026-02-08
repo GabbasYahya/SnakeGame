@@ -36,6 +36,7 @@ let playerHue = 120; // Default Green
 let inputName; // Define inputName globally
 let leaderboard = []; // Define leaderboard globally
 let volumeSlider; // Volume control
+let menuScrollY = 0; // Vertical scroll offset for menu
 
 // Preload resources
 function preload() {
@@ -111,9 +112,9 @@ function resetGame(mode) {
     gameState = "PLAY_SNAKE";
     resetSnake(5); // Start small
   } else {
-    gameState = "PLAY_APPLE";
-    // Snake starts big in survival mode
-    resetSnake(15);
+    // PLAY_APPLE mode removed — default to PLAY_SNAKE
+    gameState = "PLAY_SNAKE";
+    resetSnake(5);
   }
   // Spawn apple away from obstacles
   spawnApple();
@@ -268,8 +269,6 @@ function draw() {
     drawMenu();
   } else if (gameState === "PLAY_SNAKE") {
     playAsSnake();
-  } else if (gameState === "PLAY_APPLE") {
-    playAsApple();
   } else if (gameState === "GAME_OVER") {
     drawGameOver();
     // processGameOverOnce(); // Removed, handled in loseLife/drawGameOver
@@ -489,99 +488,7 @@ function playBossFight() {
     }
 }
 
-function playAsApple() {
-  // --- PLAYER IS APPLE ---
-  // Goal: Survive the Hunters
-  
-  checkLevelProgression();
-
-  updateObstacles();
-  spawnPowerup();
-  spawnRandomHazards();
-
-  drawObstacles();
-  drawPowerups();
-  drawHazards();
-
-  handlePowerupTimers();
-
-  // 1. Player is the Apple (Mouse Position)
-  apple.x = mouseX;
-  apple.y = mouseY;
-  drawApple(apple.x, apple.y, false); // false means 'not a food item', but the player avatar
-  
-  if(shieldActive) drawShield(apple);
-
-  // CHECK OBSTACLE COLLISION (PLAYER)
-  if (!shieldActive) {
-      if (checkHazardCollisions(createVector(mouseX, mouseY), 15)) {
-        spawnExplosion(mouseX, mouseY, color(255, 0, 0));
-        loseLife();
-      }
-
-      for(let obs of obstacles) {
-          if(dist(mouseX, mouseY, obs.pos.x, obs.pos.y) < 15 + obs.size/2) {
-              spawnExplosion(mouseX, mouseY, color(255, 255, 0));
-              loseLife();
-          }
-      }
-  }
-
-  // CHECK POWERUP COLLISION (PLAYER)
-  for(let i = powerups.length-1; i>=0; i--){
-      let p = powerups[i];
-      if(dist(mouseX, mouseY, p.pos.x, p.pos.y) < 15 + 15) {
-          applyPowerup(p.type);
-          powerups.splice(i, 1);
-      }
-  }
-
-
-  // 2. Snake Movement (Chases Apple/Mouse)
-  let target = apple; 
-  let head = vehicles[0];
-  
-  if (snakeFrozen) {
-      vehicles.forEach(v => v.show());
-      vehicles.forEach(v => { if (typeof v.debugDraw === 'function') v.debugDraw({ showSelfCircle: true }); });
-      push();
-      fill(0, 255, 255);
-      textAlign(CENTER);
-      textSize(20);
-      text("FROZEN!", head.pos.x, head.pos.y - 30);
-      pop();
-  } else {
-      vehicles.forEach((vehicle, index) => {
-        let steeringForce;
-        if (index === 0) {
-          steeringForce = vehicle.arrive(target);
-        } else {
-           let vehiculePrecedent = vehicles[index - 1];
-           steeringForce = vehicle.arrive(vehiculePrecedent.pos, 20);
-        }
-        vehicle.applyForce(steeringForce);
-        vehicle.update();
-        vehicle.show();
-        if (typeof vehicle.debugDraw === 'function') vehicle.debugDraw({ showSelfCircle: true });
-      });
-  }
-
-  // 3. Survival Scoring
-  if (frameCount % 60 === 0 && !snakeFrozen) {
-    score++;
-    if(score % 10 === 0) spawnObstacles(1); // Harder over time
-  }
-
-  // 4. Collision Detection (Head vs Player/Apple)
-  if (!shieldActive && head.pos.dist(apple) < head.r + 15) {
-    spawnExplosion(apple.x, apple.y, color(255, 0, 0));
-    // CAUGHT!
-    gameState = "GAME_OVER";
-    if (score > highScore) highScore = score;
-  }
-  
-  drawHUD();
-}
+// PLAY_APPLE mode removed - this function deleted to simplify gameplay
 
 function handlePowerupTimers() {
     if(shieldActive) {
@@ -881,6 +788,8 @@ function drawApple(x, y, isFood) {
 }
 
 function drawMenu() {
+  push();
+  translate(0, menuScrollY);
   textAlign(CENTER, CENTER);
   fill(0, 255, 0);
   textSize(80);
@@ -890,11 +799,10 @@ function drawMenu() {
   fill(255);
   text("Press '1' to Start Game", width/2, height/2 - 20);
 
-  // Draw clickable start buttons (also respond to keys 1/2)
+  // Draw clickable start button (also respond to key 1)
   let btnW = 220;
   let btnH = 56;
-  let gap = 40;
-  let total = btnW * 2 + gap;
+  let total = btnW;
   let startX = width/2 - total/2;
   let y = height/2 + 40;
 
@@ -908,19 +816,7 @@ function drawMenu() {
   noStroke();
   textSize(22);
   textAlign(CENTER, CENTER);
-  text("1 — Play Snake", startX + btnW/2, y + btnH/2);
-  pop();
-
-  // Button 2 - Play Apple
-  push();
-  stroke(200);
-  fill(80, 80, 160);
-  rect(startX + btnW + gap, y, btnW, btnH, 10);
-  fill(255);
-  noStroke();
-  textSize(22);
-  textAlign(CENTER, CENTER);
-  text("2 — Play Apple (Survive)", startX + btnW + gap + btnW/2, y + btnH/2);
+  text("Play Snake", startX + btnW/2, y + btnH/2);
   pop();
   
   textSize(18);
@@ -969,89 +865,55 @@ function drawMenu() {
       }
     }
 
-  // Export / Import CSV buttons
-  let csvBtnW = 180;
-  let csvBtnH = 36;
-  let csvY = height/2 + 420;
-  let csvGap = 24;
-  push();
-  rectMode(CENTER);
-  fill(60,180,60);
-  stroke(200);
-  rect(width/2 - csvBtnW/1.5, csvY, csvBtnW, csvBtnH, 8);
-  fill(255);
-  noStroke();
-  textSize(14);
-  textAlign(CENTER, CENTER);
-  text('Export Scores (CSV)', width/2 - csvBtnW/1.5, csvY);
-  pop();
-
-  push();
-  rectMode(CENTER);
-  fill(60,120,200);
-  stroke(200);
-  rect(width/2 + csvBtnW/1.5, csvY, csvBtnW, csvBtnH, 8);
-  fill(255);
-  noStroke();
-  textSize(14);
-  textAlign(CENTER, CENTER);
-  text('Import Scores (CSV)', width/2 + csvBtnW/1.5, csvY);
+  // (CSV export/import UI removed)
+  // end translate
   pop();
 }
 
 function mousePressed() {
     if (gameState === "MENU") {
-        let colors = [0, 60, 120, 180, 240, 300];
-        let yPos = height/2 + 100;
+    let colors = [0, 60, 120, 180, 240, 300];
+    // Account for menu scroll offset when detecting clicks
+    let localMouseY = mouseY - menuScrollY;
+    let yPos = height/2 + 160;
         let startX = width/2 - ((colors.length-1) * 30);
         
         for(let i=0; i<colors.length; i++) {
-             let bx = startX + i*60;
-             let by = yPos;
-             if (dist(mouseX, mouseY, bx, by) < 25) {
-                 playerHue = colors[i];
-                 // Update preview snake immediately
-                 resetSnake(10);
-             }
+           let bx = startX + i*60;
+           let by = yPos;
+           if (dist(mouseX, localMouseY, bx, by) < 30) {
+             playerHue = colors[i];
+             // Update preview snake immediately
+             resetSnake(10);
+           }
         }
 
-        // Check menu start buttons (same geometry as in drawMenu)
+        // Check menu start button (same geometry as in drawMenu)
         let btnW = 220;
         let btnH = 56;
-        let gap = 40;
-        let total = btnW * 2 + gap;
+        let total = btnW;
         let bx = width/2 - total/2;
         let by = height/2 + 40;
 
         // Left button -> Play Snake
-        if (mouseX >= bx && mouseX <= bx + btnW && mouseY >= by && mouseY <= by + btnH) {
+        if (mouseX >= bx && mouseX <= bx + btnW && localMouseY >= by && localMouseY <= by + btnH) {
           resetGame("SNAKE");
           return;
         }
 
-        // Right button -> Play Apple
-        let bx2 = bx + btnW + gap;
-        if (mouseX >= bx2 && mouseX <= bx2 + btnW && mouseY >= by && mouseY <= by + btnH) {
-          resetGame("APPLE");
-          return;
-        }
+        // (Play Apple removed)
         
-        // Export / Import CSV buttons (same positions as drawn in drawMenu)
-        let csvBtnW = 180;
-        let csvY = height/2 + 420;
-        let leftCsvX = width/2 - csvBtnW/1.5 - csvBtnW/2; // rectMode CENTER used in draw
-        let rightCsvX = width/2 + csvBtnW/1.5 - csvBtnW/2;
-        // left export
-        if (mouseX >= leftCsvX && mouseX <= leftCsvX + csvBtnW && mouseY >= csvY - 18 && mouseY <= csvY + 18) {
-            exportLeaderboardCSV();
-            return;
-        }
-        // right import
-        if (mouseX >= rightCsvX && mouseX <= rightCsvX + csvBtnW && mouseY >= csvY - 18 && mouseY <= csvY + 18) {
-            importLeaderboardFromFile();
-            return;
-        }
+        // CSV export/import disabled by user preference
     }
+}
+
+function mouseWheel(event) {
+  if (gameState === "MENU") {
+    // event.delta positive when scrolling down — move content up visually
+    menuScrollY -= event.delta;
+    menuScrollY = constrain(menuScrollY, -600, 200);
+    return false; // prevent page scroll
+  }
 }
 
 function drawGameOver() {
@@ -1088,13 +950,8 @@ function drawHUD() {
   textSize(24);
   text("LEVEL " + level, width - 120, 20);
 
-  if (gameState === "PLAY_APPLE") {
-    fill(150, 150, 150);
-    text("Survive!", 20, 80);
-  } else {
-      fill(150, 150, 150);
-      text("Hunter!", 20, 80);
-  }
+  fill(150, 150, 150);
+  text("Hunter!", 20, 80);
   
   if (shieldActive) {
       fill(100, 100, 255);
@@ -1118,7 +975,7 @@ function drawHUD() {
   }
 }
 
-// --- SCORE STORAGE & CSV EXPORT ---
+// --- SCORE STORAGE  ---
 function processGameOverOnce() {
   if (gameOverProcessed) return;
   gameOverProcessed = true;
@@ -1127,20 +984,20 @@ function processGameOverOnce() {
   if (name === null) return; // user cancelled
   name = name.trim();
   if (name.length === 0) return;
-  // Save score in localStorage (best score per user)
+  // Save score (best score per user)
   saveScoreToStorage(name, score);
   loadBestFromStorage();
-  alert('Score enregistré localement.');
+  alert('Score enregistré .');
 }
 
 // Try posting to a configured server endpoint. If succeeds, optionally trigger CSV download from server.
 async function sendScoreToServer(name, score) {
   // deprecated
-  return Promise.reject(new Error('Server posting deprecated in local-only mode'));
+  return Promise.reject(new Error('Server posting deprecated '));
 }
 
 async function fetchHighScoreFromServer() {
-  // deprecated in local-only mode
+  
 }
 
 function saveScoreToStorage(name, score) {
@@ -1152,123 +1009,32 @@ function saveScoreToStorage(name, score) {
   localStorage.setItem('scores', JSON.stringify(scores));
 }
 
-function downloadScoresCSV() {
-  let raw = localStorage.getItem('scores');
-  let scores = {};
-  try { scores = raw ? JSON.parse(raw) : {}; } catch (e) { scores = {}; }
-  let lines = ['name,score'];
-  for (let n in scores) {
-    lines.push(escapeCsv(n) + ',' + scores[n]);
-  }
-  let csv = lines.join('\n');
-  let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  let url = URL.createObjectURL(blob);
-  let a = document.createElement('a');
-  a.href = url;
-  a.download = 'scores.csv';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-// Export the in-memory `leaderboard` (top 5) as CSV
-function exportLeaderboardCSV() {
-  let lines = ['name,score'];
-  for (let i = 0; i < leaderboard.length; i++) {
-    let e = leaderboard[i];
-    lines.push(escapeCsv(e.name) + ',' + (e.score || 0));
-  }
-  let csv = lines.join('\n');
-  let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  let url = URL.createObjectURL(blob);
-  let a = document.createElement('a');
-  a.href = url;
-  a.download = 'leaderboard.csv';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-// Prompt user to select a CSV file and import leaderboard rows (name,score)
-function importLeaderboardFromFile() {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.csv,text/csv';
-  input.onchange = function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(ev) {
-      try {
-        const text = ev.target.result;
-        const rows = text.split(/\r?\n/).map(r => r.trim()).filter(r => r.length > 0);
-        const parsed = [];
-        for (let i = 1; i < rows.length; i++) {
-          const cols = rows[i].split(',');
-          if (!cols[0]) continue;
-          const name = cols[0].replace(/^"|"$/g, '').trim();
-          const score = parseInt((cols[1] || '0').replace(/"/g, '').trim(), 10) || 0;
-          parsed.push({ name: name, score: score });
-        }
-        // Merge: replace leaderboard with parsed top 5 sorted
-        if (parsed.length > 0) {
-          parsed.sort((a,b) => b.score - a.score);
-          leaderboard = parsed.slice(0, 5);
-          // Persist so page reload shows same data
-          localStorage.setItem('snakeLeaderboard', JSON.stringify(leaderboard));
-        }
-      } catch (err) {
-        console.error('Failed to import CSV', err);
-      }
-    };
-    reader.readAsText(file);
-  };
-  input.click();
-}
-
-function escapeCsv(str) {
-  if (str.indexOf(',') !== -1 || str.indexOf('"') !== -1 || str.indexOf('\n') !== -1) {
-    return '"' + str.replace(/"/g, '""') + '"';
-  }
-  return str;
-}
-
-function loadBestFromStorage() {
-  let raw = localStorage.getItem('scores');
-  if (!raw) { highScore = 0; bestName = ''; return; }
-  let scores = {};
-  try { scores = JSON.parse(raw); } catch (e) { scores = {}; }
-  let best = 0; let name = '';
-  for (let n in scores) {
-    let s = scores[n] || 0;
-    if (s > best) { best = s; name = n; }
-  }
-  highScore = best;
-  bestName = name;
-}
-
-// --- INPUTS ---
-
+// Keyboard input handler (start game, return to menu, debug)
 function keyPressed() {
   if (key === 'd' || key === 'D') {
-    Vehicle.debug = !Vehicle.debug;
+    if (typeof Vehicle !== 'undefined') Vehicle.debug = !Vehicle.debug;
     return;
   }
+
   if (gameState === "MENU") {
     if (key === '1') {
       resetGame("SNAKE");
-    } else if (key === '2') {
-      resetGame("APPLE");
     }
-  } else if (gameState === "GAME_OVER") {
+    return;
+  }
+
+  if (gameState === "GAME_OVER") {
+    // If the name input is focused, ignore the 'M' key so typing 'm' doesn't close the menu
+    if (inputName && inputName.elt && inputName.elt === document.activeElement) {
+      return;
+    }
+
     if (key === 'm' || key === 'M') {
       gameState = "MENU";
-      if(inputName) {
-         inputName.btn.remove();
-         inputName.remove();
-         inputName = null;
+      if (inputName) {
+        if (inputName.btn) inputName.btn.remove();
+        inputName.remove();
+        inputName = null;
       }
     }
   }
