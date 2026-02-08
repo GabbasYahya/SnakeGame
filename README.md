@@ -116,8 +116,8 @@ Dans le cadre de ce projet, nous avons utilisé des assistants IA (notamment Gem
 - Rédiger des prompts et expliquer l'usage attendu des fichiers existants.
 
 Le Prompt Utilisé :
-"
-Pour structurer la base du jeu et les comportements avancés nous avons utilisé un prompt synthétique tel que :
+
+"Pour structurer la base du jeu et les comportements avancés nous avons utilisé un prompt synthétique tel que :
 
 - Sous-classes : les entités du jeu héritent de `Vehicle` et spécialisent le comportement :
 	- `Obstacle` : entité statique (ou faiblement mobile) représentant les obstacles du niveau. Hérite de `Vehicle` pour réutiliser les propriétés de position/mouvement; ajoute la logique de collision et d'interaction avec la `Snake`.
