@@ -135,4 +135,13 @@ Le Prompt Utilisé :
 - Documenter brièvement chaque sous-classe (responsabilité, méthodes clés, événements de collision) permet de garder la maintenance simple."
   
 -----
+Nos Fiertés
+
+- **Progression organique :** la montée en difficulté est pilotée  (paliers toutes les 5 pommes), entraînant plus d'obstacles, des vagues accrues et des boss, ce qui rend la progression addictive.
+- **Comportements et IA variés :** la pomme intelligente  les `EnemySnake` avec systèmes d'avertissement et le boss créent des patterns distincts et modulaires.
+- **Retour visuel soigné :** `Particle`, pulses d'arrière-plan, effets de bouclier et animations de la pomme fournissent un feedback clair sans nuire aux performances.
+- **Hazards et diversité :** bombes, obstacles mobiles, avertissements directionnels et spawns d'ennemis offrent des situations variées et imprévisibles.
+
+
+
 
