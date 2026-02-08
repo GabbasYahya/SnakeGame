@@ -1,6 +1,6 @@
 # 🐍 Snake vs Apple - Projet "Arrival"
 
-Bienvenue sur la documentation du projet **Snake vs Apple**. Ce fichier a pour but de guider les développeurs (et toi, cher collègue !) à travers l'architecture du code, les fonctionnalités actuelles et la marche à suivre pour continuer le développement.
+Auteurs : GABBAS Yahya & AIT EL MAHJOUB Salaheddine
 
 ## 📋 Description du Projet
 
