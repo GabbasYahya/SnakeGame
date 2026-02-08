@@ -12,7 +12,7 @@ Ce jeu est une version modernisée et "arcade" du classique Snake, développé e
 
 Voici une courte vidéo de présentation du jeu :
 
-[![Regarder la vidéo](https://img.youtube.com/vi/qc9L1uSe6Kg/hqdefault.jpg)](https://youtu.be/qc9L1uSe6Kg)
+[![Regarder la vidéo](assets/%C3%89crans%20du%20Jeu/image.png)](https://youtu.be/qc9L1uSe6Kg)
 
 Lien vers la démo hébergée :
 
