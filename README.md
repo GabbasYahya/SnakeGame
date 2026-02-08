@@ -88,7 +88,7 @@ Voici comment le code est organisé dans le dossier  :
 - **Écran Game Over** : score final, demande de saisie du nom si Top 5, option retour au menu.
 - **Leaderboard** : affichage des Top 5 dans le menu avec export/import CSV.
 
-## 🧭 Comportements (Steering Behaviors) — Commentaires
+## 🧭 Comportements (Steering Behaviors)  Commentaires
 
 Le projet utilise plusieurs comportements de mouvement pour les entités (apple mobile, ennemis, obstacles dynamiques). Voici un bref commentaire utile pour comprendre et ajuster la logique :
 
@@ -106,4 +106,26 @@ Ces comportements sont combinés via des poids/coefficients pour obtenir des mou
 
 - Performances de démarrage : certains médias (audio, polices, fichiers volumineux) et le chargement synchrone des scripts peuvent ralentir l'affichage initial.
 
+---
+
+Méthodologie & Utilisation de l'IA
+
+Dans le cadre de ce projet, nous avons utilisé des assistants IA (notamment Gemini et Claude) pour accélérer le prototypage, explorer différentes idées de comportement et expliciter l'intégration de comportements complexes dans le jeu. Les assistants ont servi principalement à :
+- Générer des descriptions de design et de comportements.
+- Proposer des architectures de code (séparation des responsabilités, sous-classes).
+- Rédiger des prompts et expliquer l'usage attendu des fichiers existants.
+
+Le Prompt Utilisé :
+"
+Pour structurer la base du jeu et les comportements avancés nous avons utilisé un prompt synthétique tel que :
+
+- Sous-classes : les entités du jeu héritent de `Vehicle` et spécialisent le comportement :
+	- `Obstacle` : entité statique (ou faiblement mobile) représentant les obstacles du niveau. Hérite de `Vehicle` pour réutiliser les propriétés de position/mouvement; ajoute la logique de collision et d'interaction avec la `Snake`.
+	- `Snak` : représente la tête/segment du serpent (ou l'entité principale contrôlée). Étend `Vehicle` pour gérer le déplacement dirigé, la croissance, la détection de nourriture et les collisions avec obstacles et auto-collisions.
+	- `Particle` : petites entités visuelles (effets de particules) héritant de `Vehicle` pour tirer parti des méthodes de déplacement et d'affichage; ont une durée de vie courte et servent uniquement au feedback visuel (explosions, éclats, traces).
+
+- Laisser vehicle.js inchangé garantit une couche base stable ; les ajustements comportementaux se font dans les sous-classes.
+- Documenter brièvement chaque sous-classe (responsabilité, méthodes clés, événements de collision) permet de garder la maintenance simple."
+  
+-----
 
