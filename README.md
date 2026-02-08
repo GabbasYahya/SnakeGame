@@ -115,8 +115,8 @@ Dans le cadre de ce projet, nous avons utilisé des assistants IA (notamment Gem
 Les assistants ont servi principalement à :
 
 - Générer des descriptions de design et de comportements.
-- Proposer des architectures de code (séparation des responsabilités, sous-classes).
-- Rédiger des prompts et expliquer l'usage attendu des fichiers existants.
+- Séparation des responsabilités, sous-classes.
+
 
 Le Prompt Utilisé :
 
