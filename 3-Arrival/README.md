@@ -25,7 +25,7 @@ Ce jeu est une version modernisée et "arcade" du classique Snake, développé e
 
 ## 📂 Structure des Fichiers
 
-Voici comment le code est organisé dans le dossier `3-Arrival` :
+Voici comment le code est organisé dans le dossier  :
 
 | Fichier | Description |
 | :--- | :--- |
@@ -39,21 +39,7 @@ Voici comment le code est organisé dans le dossier `3-Arrival` :
 
 ---
 
-## 🚀 Installation et Lancement
 
-Puisque le projet utilise p5.js et charge des fichiers externes (sons, images), il **doit être lancé via un serveur local** pour éviter les erreurs CORS (Cross-Origin Resource Sharing).
-
-1.  **Ouvrir le projet** dans VS Code.
-2.  S'assurer que l'extension **Live Server** est installée.
-3.  Faire un clic droit sur `3-Arrival/index.html` -> **"Open with Live Server"**.
-
-Alternativement, ouvrir via un serveur Python :
-```bash
-cd 3-Arrival
-python -m http.server
-```
-
----
 
 ## 🕹️ Contrôles et Gameplay
 
@@ -63,25 +49,4 @@ python -m http.server
 
 ---
 
-## 🛠️ Dernières Modifications (Log)
 
-*   **Fix Critique** : Correction des crashs liés à `inputName` (variable déclarée globalement).
-*   **UI** : Remplacement du bouton "Mute" par un **Slider de Volume**. Affichage des vies sous forme de **Cœurs rouges**.
-*   **Gameplay** :
-    *   Les pommes rapportent maintenant **+1 point**.
-    *   Les bonus rapportent **+2 points**.
-    *   Les *Serpents Ennemis* peuvent désormais arriver de **Haut** et de **Bas** (pas seulement gauche/droite).
-*   **Graphismes** : Suppression de la grille de fond pour plus de clarté.
-
----
-
-## 📝 À Faire (To-Do List pour le collègue)
-
-Si tu reprends le projet, voici les prochaines étapes suggérées :
-
-1.  **Graphismes (Assets)** : Remplacer les formes géométriques (rectangles/ellipses) par de vraies images `.png` (sprites).
-    *   *Voir la liste des assets recommandés dans la conversation précédente.*
-2.  **Équilibrage** : Le Boss est parfois trop difficile au niveau 10. Ajuster sa vitesse dans `boss.js`.
-3.  **Mobile** : Ajouter des boutons tactiles pour jouer sur téléphone.
-
-**Bon courage ! 🚀**
