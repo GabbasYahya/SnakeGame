@@ -128,7 +128,7 @@ Le Prompt Utilisé :
 
 - Sous-classes : les entités du jeu héritent de `Vehicle` et spécialisent le comportement :
 	- `Obstacle` : entité statique (ou faiblement mobile) représentant les obstacles du niveau. Hérite de `Vehicle` pour réutiliser les propriétés de position/mouvement; ajoute la logique de collision et d'interaction avec la `Snake`.
-	- `Snak` : représente la tête/segment du serpent (ou l'entité principale contrôlée). Étend `Vehicle` pour gérer le déplacement dirigé, la croissance, la détection de nourriture et les collisions avec obstacles et auto-collisions.
+	- `Snake` : représente la tête/segment du serpent (ou l'entité principale contrôlée). Étend `Vehicle` pour gérer le déplacement dirigé, la croissance, la détection de nourriture et les collisions avec obstacles et auto-collisions.
 	- `Particle` : petites entités visuelles (effets de particules) héritant de `Vehicle` pour tirer parti des méthodes de déplacement et d'affichage; ont une durée de vie courte et servent uniquement au feedback visuel (explosions, éclats, traces).
 
 - Laisser vehicle.js inchangé garantit une couche base stable ; les ajustements comportementaux se font dans les sous-classes.
