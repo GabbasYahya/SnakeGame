@@ -90,5 +90,19 @@ Ces comportements sont combinés via des poids/coefficients pour obtenir des mou
 - Fournir un projet hébergeable en statique (GitHub Pages) avec options d'export/import de leaderboard pour conserver les meilleurs scores.
 - Offrir une base pédagogique pour apprendre p5.js, les comportements d'agents et la structuration d'un petit jeu JavaScript.
 
+## 🎬 Vidéo & Démo
+
+Voici une courte vidéo de présentation du jeu :
+
+<video controls width="720">
+    <source src="assets/%C3%89crans%20du%20Jeu/Video.mp4" type="video/mp4">
+    Votre navigateur ne supporte pas la lecture vidéo.
+</video>
+
+Lien vers la démo hébergée :
+
+[Voir la démo en ligne](https://gabbasyahya.github.io/SnakeGame/3-Arrival/index.html)
+
+
 
 
