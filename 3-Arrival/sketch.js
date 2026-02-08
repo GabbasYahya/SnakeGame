@@ -9,8 +9,10 @@ let level = 1;
 let levelMessageTimer = 0;
 let levelMessageText = "";
 let gameState = "MENU"; // MENU, PLAY_SNAKE, PLAY_APPLE, GAME_OVER
+let lastGameState = "PLAY_SNAKE";
 let font;
 let gameOverProcessed = false;
+let lives = 3;
 
 // Obstacles & Powerups
 let obstacles = []; // Array of Objects {pos, vel, angle, type}
@@ -18,6 +20,9 @@ let powerups = [];  // Array of Objects {pos, type}
 let particles = []; // Explosion particles
 let bombs = [];
 let enemySnakes = [];
+let warnings = []; // Visual indicators for incoming hazards
+let boss = null;
+let bgPulse = 0;
 
 let snakeFrozen = false;
 let freezeTimer = 0;
@@ -26,26 +31,68 @@ let freezeTimer = 0;
 let shieldActive = false;
 let shieldTimer = 0;
 
+let applesEaten = 0; // For level progression independent of score
+let playerHue = 120; // Default Green
+let inputName; // Define inputName globally
+let leaderboard = []; // Define leaderboard globally
+let volumeSlider; // Volume control
+
 // Preload resources
 function preload() {
   font = loadFont('./assets/inconsolata.otf');
+  
+  // Load background music
+  soundFormats('mp3', 'ogg');
+  // Make sure you have a file named 'music.mp3' in your assets folder!
+  bgMusic = loadSound('assets/NCS x Geometry Dash Mix  NCS - Copyright Free Music.mp3', 
+    () => console.log("Music loaded successfully"), 
+    () => console.log("Warning: Music file not found")
+  );
 }
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
+  
+  // Try to start music on launch (Autoplay policy might block it until interaction)
+  if (bgMusic) {
+    bgMusic.setVolume(0.3);
+  }
+  
+  // Load Leaderboard from local storage
+  let savedLb = localStorage.getItem('snakeLeaderboard');
+  if (savedLb) {
+      leaderboard = JSON.parse(savedLb);
+  }
+  
   // Initialize standard snake size
   resetSnake(10);
   spawnApple();
-  // Load current best score from local storage
-  loadBestFromStorage();
+  
+  // Volume Slider
+  volumeSlider = createSlider(0, 1, 0.3, 0.01);
+  volumeSlider.position(width - 150, 10);
+  volumeSlider.style('width', '100px');
+  
+  let volLabel = createDiv('Volume');
+  volLabel.position(width - 150, 30);
+  volLabel.style('color', 'white');
+  volLabel.style('font-family', 'sans-serif');
 }
 
 function resetGame(mode) {
   score = 0;
   level = 1;
+  applesEaten = 0; // Reset progress
+  lives = 3;
   shieldActive = false;
   gameOverProcessed = false;
   
+  // Start Music if not playing
+  if (bgMusic && !bgMusic.isPlaying()) {
+    bgMusic.setVolume(0.3);
+    bgMusic.loop();
+  }
+
   // Dynamic Obstacles
   obstacles = [];
   spawnObstacles(5); // Start with fewer for Level 1
@@ -53,7 +100,9 @@ function resetGame(mode) {
   powerups = [];
   bombs = [];
   enemySnakes = [];
+  warnings = [];
   particles = [];
+  boss = null;
   
   snakeFrozen = false;
   freezeTimer = 0;
@@ -109,11 +158,31 @@ function getValidSpawnPosition() {
 }
 
 function spawnApple() {
-  apple = getValidSpawnPosition();
+  let attempts = 0;
+  let pos;
+  let valid = false;
+  
+  // Robust Spawning
+  while(!valid && attempts < 100) {
+    pos = createVector(random(50, width-50), random(50, height-50));
+    valid = true;
+    for(let obs of obstacles) {
+      if(pos.dist(obs.pos) < obs.size + 40) valid = false; // Increased margin
+    }
+    attempts++;
+  }
+  
+  // Fallback if no valid spot found (to prevent disappearance)
+  if (!valid) {
+      pos = createVector(width/2, height/2);
+  }
+
+  apple = pos;
   appleVel = createVector(0,0);
 }
 
 function spawnExplosion(x, y, col) {
+  bgPulse = 20; // Trigger background pulse
   for (let i = 0; i < 20; i++) {
     particles.push(new Particle(x, y, col));
   }
@@ -123,8 +192,7 @@ function spawnPowerup() {
   if (frameCount % 300 === 0 && powerups.length < 3) { // Every 5 seconds
      let r = random();
      let type = "BONUS";
-     if(r < 0.4) type = "FREEZE";
-     else if(r < 0.7) type = "SHIELD";
+     if(r < 0.6) type = "SHIELD";
      
      let pos = getValidSpawnPosition();
      powerups.push({pos: pos, type: type});
@@ -145,9 +213,44 @@ function updateObstacles() {
 
 // Main Game Loop
 function draw() {
-  // Trail effect for cool visuals
-  background(0, 0, 0, 50);
+  // Update Volume
+  if (bgMusic && volumeSlider) {
+      bgMusic.setVolume(volumeSlider.value());
+  }
 
+  drawBackground();
+  
+  // Draw Warnings
+  for (let i = warnings.length - 1; i >= 0; i--) {
+      let w = warnings[i];
+      w.timer--;
+      
+      // Pulse red glow at the edge
+      noStroke();
+      let alpha = map(sin(frameCount * 0.5), -1, 1, 100, 255);
+      fill(255, 0, 0, alpha);
+      
+      if (w.side === 'LEFT') {
+          rect(0, w.y - 20, 30, 40);
+          triangle(40, w.y, 10, w.y - 10, 10, w.y + 10);
+      } else if (w.side === 'RIGHT') {
+          rect(width - 30, w.y - 20, 30, 40);
+          triangle(width - 40, w.y, width - 10, w.y - 10, width - 10, w.y + 10);
+      } else if (w.side === 'TOP') {
+          rect(w.x - 20, 0, 40, 30);
+          triangle(w.x, 40, w.x - 10, 10, w.x + 10, 10);
+      } else if (w.side === 'BOTTOM') {
+          rect(w.x - 20, height - 30, 40, 30);
+          triangle(w.x, height - 40, w.x - 10, height - 10, w.x + 10, height - 10);
+      }
+      
+      if (w.timer <= 0) {
+          // Spawn the actual enemy
+          enemySnakes.push(new EnemySnake(w.x, w.y, w.vx, w.vy));
+          warnings.splice(i, 1);
+      }
+  }
+  
   // Update and draw particles
   for (let i = particles.length - 1; i >= 0; i--) {
     particles[i].applyForce(createVector(0, 0.1)); // Gravity
@@ -169,7 +272,18 @@ function draw() {
     playAsApple();
   } else if (gameState === "GAME_OVER") {
     drawGameOver();
-    processGameOverOnce();
+    // processGameOverOnce(); // Removed, handled in loseLife/drawGameOver
+  } else if (gameState === "LEVEL_TRANSITION") {
+    // Draw game elements in frozen state
+    drawObstacles();
+    vehicles.forEach(v => v.show());
+    if (typeof apple !== 'undefined') drawApple(apple.x, apple.y, lastGameState === "PLAY_SNAKE");
+    drawHUD();
+    
+    // Check if transition finished
+    if (levelMessageTimer <= 0) {
+        gameState = lastGameState;
+    }
   }
 
   // Global debug overlays for obstacles & food
@@ -235,36 +349,55 @@ function playAsSnake() {
   
   updateObstacles();
   spawnPowerup();
-  spawnRandomHazards(); // Bombs logic
   
-  drawObstacles();
+  // BOSS LOGIC OR NORMAL LOGIC
+  if (boss) {
+    // --- BOSS FIGHT ---
+    playBossFight();
+  } else {
+    // --- NORMAL GAME ---
+    updateObstacles();
+    spawnRandomHazards(); // Bombs logic
+    drawObstacles();
+    
+    // Smart Apple Logic (It runs away!)
+    let head = vehicles[0];
+    let distToSnake = p5.Vector.dist(apple, head.pos);
+    
+    if (distToSnake < 200) {
+      // Flee behavior
+      let fleeForce = p5.Vector.sub(apple, head.pos);
+      fleeForce.setMag(4); // Run speed
+      appleVel.lerp(fleeForce, 0.1);
+    } else {
+      // Slow down if safe
+      appleVel.mult(0.95);
+    }
+    
+    apple.add(appleVel);
+    // Keep apple on screen
+    apple.x = constrain(apple.x, 20, width-20);
+    apple.y = constrain(apple.y, 20, height-20);
+    
+    drawApple(apple.x, apple.y, true);
+
+    // 2. Collision Detection (Head vs Apple)
+    if (head.pos.dist(apple) < head.r + 20) {
+      spawnExplosion(apple.x, apple.y, color(100, 255, 100)); // Green 'juice'
+      score += 1; // +1 score per apple
+      applesEaten++;
+      if (applesEaten % 5 === 0) spawnObstacles(1); // Difficulty Spike based on progression
+      spawnApple();
+    }
+  }
+
   drawPowerups();
   drawHazards();       
 
-  // Smart Apple Logic (It runs away!)
   let head = vehicles[0];
-  let distToSnake = p5.Vector.dist(apple, head.pos);
-  
-  if (distToSnake < 200) {
-    // Flee behavior
-    let fleeForce = p5.Vector.sub(apple, head.pos);
-    fleeForce.setMag(4); // Run speed
-    appleVel.lerp(fleeForce, 0.1);
-  } else {
-    // Slow down if safe
-    appleVel.mult(0.95);
-  }
-  
-  apple.add(appleVel);
-  // Keep apple on screen
-  apple.x = constrain(apple.x, 20, width-20);
-  apple.y = constrain(apple.y, 20, height-20);
-  
-  drawApple(apple.x, apple.y, true);
 
   if (checkHazardCollisions(head.pos, head.r)) { // Check new hazards
-        gameState = "GAME_OVER";
-         if (score > highScore) highScore = score;
+        loseLife();
   }
 
   // 1. Snake Movement (Follow Mouse)
@@ -278,8 +411,7 @@ function playAsSnake() {
     for(let obs of obstacles) {
         if(head.pos.dist(obs.pos) < head.r + obs.size/2) {
             spawnExplosion(head.pos.x, head.pos.y, color(255, 50, 50));
-            gameState = "GAME_OVER";
-            if (score > highScore) highScore = score;
+            loseLife();
         }
     }
   }
@@ -310,20 +442,51 @@ function playAsSnake() {
   // Draw Shield visual on Head
   if(shieldActive) drawShield(head.pos);
 
-  // 2. Collision Detection (Head vs Apple)
-  if (head.pos.dist(apple) < head.r + 20) {
-    spawnExplosion(apple.x, apple.y, color(100, 255, 100)); // Green 'juice'
-    score++;
-    if (score % 5 === 0) spawnObstacles(1); // Difficulty Spike
-    spawnApple();
-    
-    // Grow Snake
-    let last = vehicles[vehicles.length - 1];
-    vehicles.push(new Snake(last.pos.x, last.pos.y, vehicles.length));
-  }
-
   // Draw HUD
   drawHUD();
+}
+
+function playBossFight() {
+    let head = vehicles[0];
+    
+    // Ensure obstacles (spikes) exist for logic
+    if (obstacles.length < 3) spawnObstacles(1);
+    drawObstacles();
+    
+    // Warn User
+    push();
+    textAlign(CENTER);
+    fill(255, 0, 0);
+    textSize(16);
+    text("LURE BOSS INTO SPIKES!", width/2, height - 50);
+    pop();
+    
+    // Update Boss
+    boss.update(head.pos);
+    boss.show();
+    
+    // Boss Attacks Player
+    if (head.pos.dist(boss.pos) < head.r + boss.r) {
+        spawnExplosion(head.pos.x, head.pos.y, color(255, 0, 0));
+        loseLife();
+        // Push boss away to prevent instant re-kill
+        let push = p5.Vector.sub(boss.pos, head.pos).setMag(200);
+        boss.pos.add(push);
+    }
+    
+    // Boss hits Spikes
+    if (boss.checkSpikeCollision(obstacles)) {
+        // Boss took damage
+        if (boss.isDead()) {
+            // Victory
+            spawnExplosion(boss.pos.x, boss.pos.y, color(255, 215, 0)); // Big Gold Explosion
+            boss = null;
+            score += 50; // Big Bonus
+            gameState = "LEVEL_TRANSITION";
+            levelTransitionTimer = 180;
+            spawnExplosion(width/2, height/2, color(0, 255, 255));
+        }
+    }
 }
 
 function playAsApple() {
@@ -353,15 +516,13 @@ function playAsApple() {
   if (!shieldActive) {
       if (checkHazardCollisions(createVector(mouseX, mouseY), 15)) {
         spawnExplosion(mouseX, mouseY, color(255, 0, 0));
-        gameState = "GAME_OVER";
-         if (score > highScore) highScore = score;
+        loseLife();
       }
 
       for(let obs of obstacles) {
           if(dist(mouseX, mouseY, obs.pos.x, obs.pos.y) < 15 + obs.size/2) {
               spawnExplosion(mouseX, mouseY, color(255, 255, 0));
-              gameState = "GAME_OVER";
-              if (score > highScore) highScore = score;
+              loseLife();
           }
       }
   }
@@ -423,10 +584,6 @@ function playAsApple() {
 }
 
 function handlePowerupTimers() {
-    if(snakeFrozen) {
-        freezeTimer--;
-        if(freezeTimer <= 0) snakeFrozen = false;
-    }
     if(shieldActive) {
         shieldTimer--;
         if(shieldTimer <= 0) shieldActive = false;
@@ -435,10 +592,7 @@ function handlePowerupTimers() {
 
 function applyPowerup(type) {
     if (type === "BONUS") {
-        score += 5;
-    } else if (type === "FREEZE") {
-        snakeFrozen = true;
-        freezeTimer = 180; // 3s
+        score += 2;
     } else if (type === "SHIELD") {
         shieldActive = true;
         shieldTimer = 300; // 5s protection
@@ -448,35 +602,61 @@ function applyPowerup(type) {
 // --- LEVELS & HAZARDS LOGIC ---
 
 function checkLevelProgression() {
-  let leveledUp = false;
+  if (boss) return; // No level progression during boss fight
   
-  if(gameState === "PLAY_SNAKE") {
-      // Increase level every 5 points
-      let currentLevel = Math.floor(score / 5) + 1; 
-      if(currentLevel > level) {
-          level = currentLevel;
-          leveledUp = true;
-      }
-  } else {
-      // Increase level every 8 points (time)
-      let currentLevel = Math.floor(score / 8) + 1;
-      if(currentLevel > level) {
-          level = currentLevel;
-          leveledUp = true;
-      }
+  let leveledUp = false;
+  // Progress based on APPLES EATEN, not Score. 
+  let targetLevel = Math.floor(applesEaten / 5) + 1; 
+  
+  if(targetLevel > level) {
+      level = targetLevel;
+      leveledUp = true;
   }
   
   if (leveledUp) {
-      // Difficulty Increase
-      // Add 1 obstacle per level
-      spawnObstacles(1);
-      
-      // Visual Feedback
-      spawnExplosion(width/2, height/2, color(0, 255, 255));
-      // Show temporary level message (3 seconds)
-      levelMessageTimer = 180;
-      levelMessageText = "LEVEL " + level;
+      // BOSS WAVE CHECK (Every 5 levels)
+      if (gameState === "PLAY_SNAKE" && level % 5 === 0) {
+          boss = new Boss(width/2, -100); // Spawn Boss
+          levelMessageText = "BOSS FIGHT!";
+          levelMessageTimer = 180;
+      } else {
+          // Standard transition
+          lastGameState = gameState;
+          gameState = "LEVEL_TRANSITION";
+          levelTransitionTimer = 120; 
+          spawnObstacles(1);
+          spawnExplosion(width/2, height/2, color(0, 255, 255));
+          levelMessageText = "LEVEL " + level;
+          levelMessageTimer = 180;
+      }
   }
+}
+
+function drawBackground() {
+  colorMode(HSB); 
+  
+  // Electro Theme Check: Change theme every 5 levels (Boss Worlds)
+  // Instead of constant shifting, pick a static theme for the world
+  let worldIndex = Math.floor((level - 1) / 5);
+  let baseHue = (worldIndex * 60) % 360; // Changes color completely every 5 levels
+  
+  let hueVal = baseHue;
+  let satVal = 80;
+  let briVal = 10 + bgPulse;
+  
+  if (boss) {
+      // During boss: Flashing Red/Theme mix
+      hueVal = (frameCount * 5) % 360; 
+      satVal = 100;
+      briVal = 20 + bgPulse;
+  }
+
+  background(hueVal, satVal, briVal);
+  
+  colorMode(RGB);
+  
+  // Decay pulse
+  bgPulse *= 0.9;
 }
 
 function spawnRandomHazards() {
@@ -492,12 +672,36 @@ function spawnRandomHazards() {
      }
   }
   
-  // Enemy Snake Spawning (Apple Mode or High Level Snake Mode)
+  // Enemy Snake Warning Logic
   if (level >= 3 && frameCount % 600 === 0) { // Every 10s roughly
-      let y = random(100, height-100);
+      let side = random(['LEFT', 'RIGHT', 'TOP', 'BOTTOM']);
       let speed = random(3, 3 + level);
-      if (random() < 0.5) speed *= -1;
-      enemySnakes.push(new EnemySnake(y, speed));
+      
+      let w = {
+          x: 0, y: 0, vx: 0, vy: 0, 
+          side: side, 
+          timer: 60 
+      };
+
+      if(side === 'LEFT') {
+          w.y = random(100, height-100);
+          w.vx = speed;
+          w.x = -50; 
+      } else if (side === 'RIGHT') {
+          w.y = random(100, height-100);
+          w.vx = -speed;
+          w.x = width + 50; 
+      } else if (side === 'TOP') {
+          w.x = random(100, width-100);
+          w.vy = speed;
+          w.y = -50;
+      } else if (side === 'BOTTOM') {
+          w.x = random(100, width-100);
+          w.vy = -speed;
+          w.y = height + 50;
+      }
+      
+      warnings.push(w);
   }
 }
 
@@ -534,6 +738,64 @@ function checkHazardCollisions(pos, radius) {
     return false;
 }
 
+function loseLife() {
+    lives--;
+    if (lives <= 0) {
+        gameState = "GAME_OVER";
+        checkLeaderboard();
+    } else {
+        // Respawn safe
+        spawnExplosion(width/2, height/2, color(255));
+        if (gameState === "PLAY_SNAKE") resetSnake(10); // Fixed size
+        // Brief invulnerability
+        shieldActive = true;
+        shieldTimer = 120; // 2 seconds
+    }
+}
+
+// --- LEADERBOARD & DATA ---
+
+function checkLeaderboard() {
+    // Check if score qualifies for top 5
+    let qualifies = false;
+    if (leaderboard.length < 5) qualifies = true;
+    else if (score > leaderboard[leaderboard.length-1].score) qualifies = true;
+    
+    if (qualifies && !inputName) {
+        inputName = createInput('');
+        inputName.position(width/2 - 100, height/2 + 180);
+        inputName.size(200);
+        inputName.attribute('placeholder', 'Enter Name (Max 6)');
+        inputName.attribute('maxlength', '6');
+        inputName.style('font-size', '20px');
+        
+        let subBtn = createButton('Save');
+        subBtn.position(width/2 + 110, height/2 + 180);
+        subBtn.style('font-size', '20px');
+        subBtn.mousePressed(saveScore);
+        
+        // Store button on input for removal
+        inputName.btn = subBtn; 
+    }
+}
+
+function saveScore() {
+    let name = inputName.value() || "Anon";
+    leaderboard.push({name: name, score: score});
+    // Sort descending
+    leaderboard.sort((a, b) => b.score - a.score);
+    // Keep top 5
+    if(leaderboard.length > 5) leaderboard = leaderboard.slice(0, 5);
+    
+    localStorage.setItem('snakeLeaderboard', JSON.stringify(leaderboard));
+    
+    // Cleanup
+    inputName.btn.remove();
+    inputName.remove();
+    inputName = null;
+    gameState = "MENU"; // Go back to menu after saving
+}
+
 // --- VISUALS & UI ---
 
 function drawObstacles() {
@@ -550,21 +812,13 @@ function drawPowerups() {
         // Bobbing
         translate(0, sin(frameCount * 0.1) * 5);
         
-        if (p.type === "BONUS") {
+        if(p.type === "BONUS") {
             fill(255, 215, 0); 
             circle(0, 0, 25);
             fill(0);
             textAlign(CENTER, CENTER);
             textSize(12);
             text("+5", 0, 0);
-        } else if (p.type === "FREEZE") {
-            fill(0, 255, 255);
-            rectMode(CENTER);
-            rect(0, 0, 20, 20);
-            fill(0);
-            textAlign(CENTER, CENTER);
-            textSize(8);
-            text("ICE", 0, 0);
         } else if (p.type === "SHIELD") {
             fill(100, 100, 255);
             circle(0, 0, 25);
@@ -630,16 +884,75 @@ function drawMenu() {
   textAlign(CENTER, CENTER);
   fill(0, 255, 0);
   textSize(80);
-  text("SNAKE VS APPLE", width/2, height/3);
+  text("SNAKE VS APPLE", width/2, height/3 - 50);
 
   textSize(30);
   fill(255);
-  text("Press '1' to be the SNAKE (Hunt)", width/2, height/2);
-  text("Press '2' to be the APPLE (Survive)", width/2, height/2 + 50);
+  text("Press '1' to Start Game", width/2, height/2 - 20);
   
   textSize(18);
   fill(200);
-  text("Now with Moving Spikes & Shields!", width/2, height/2 + 100);
+  text("Now with Moving Spikes & Shields!", width/2, height/2 + 20);
+  
+  // Color Picker UI
+  push();
+  textSize(24);
+  fill(255);
+  text("Choose Snake Color:", width/2, height/2 + 60);
+  
+  // Draw Color Options
+  colorMode(HSB);
+  let colors = [0, 60, 120, 180, 240, 300]; // Red, Yellow, Green, Cyan, Blue, Purple
+  let yPos = height/2 + 100;
+  let startX = width/2 - ((colors.length-1) * 30);
+  
+  for(let i=0; i<colors.length; i++) {
+      let c = colors[i];
+      stroke(255);
+      if (playerHue === c) {
+          strokeWeight(4); // Selected highlight
+          fill(c, 255, 255);
+          circle(startX + i*60, yPos, 45); 
+      } else {
+          strokeWeight(1);
+          fill(c, 200, 200);
+          circle(startX + i*60, yPos, 30);
+      }
+  }
+  colorMode(RGB);
+  pop();
+  
+  // Draw Leaderboard
+  fill(255, 215, 0);
+  textSize(24);
+  text("TOP 5 LEGENDS", width/2, height/2 + 160);
+  
+  textSize(20);
+  fill(255);
+  if(typeof leaderboard !== 'undefined') {
+      for(let i=0; i<leaderboard.length; i++) {
+         let entry = leaderboard[i];
+         text(`${i+1}. ${entry.name}: ${entry.score}`, width/2, height/2 + 190 + (i*25));
+      }
+  }
+}
+
+function mousePressed() {
+    if (gameState === "MENU") {
+        let colors = [0, 60, 120, 180, 240, 300];
+        let yPos = height/2 + 100;
+        let startX = width/2 - ((colors.length-1) * 30);
+        
+        for(let i=0; i<colors.length; i++) {
+             let bx = startX + i*60;
+             let by = yPos;
+             if (dist(mouseX, mouseY, bx, by) < 25) {
+                 playerHue = colors[i];
+                 // Update preview snake immediately
+                 resetSnake(10);
+             }
+        }
+    }
 }
 
 function drawGameOver() {
@@ -687,6 +1000,22 @@ function drawHUD() {
   if (shieldActive) {
       fill(100, 100, 255);
       text("SHIELD: " + Math.ceil(shieldTimer/60), 20, 110);
+  }
+  
+  // Lives Display (Hearts)
+  let startX = 20;
+  let startY = 140; // Below Shield
+  for(let i=0; i<lives; i++) {
+        push();
+        translate(startX + i*30, startY);
+        noStroke();
+        fill(255, 50, 50);
+        beginShape();
+        vertex(0, 0);
+        bezierVertex(-10, -10, -20, 5, 0, 20);
+        bezierVertex(20, 5, 10, -10, 0, 0);
+        endShape(CLOSE);
+        pop();
   }
 }
 
@@ -781,6 +1110,12 @@ function keyPressed() {
   } else if (gameState === "GAME_OVER") {
     if (key === 'm' || key === 'M') {
       gameState = "MENU";
+      if(inputName) {
+         inputName.btn.remove();
+         inputName.remove();
+         inputName = null;
+      }
     }
   }
 }
+

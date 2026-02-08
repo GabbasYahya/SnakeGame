@@ -14,10 +14,10 @@ class Snake extends Vehicle {
       rotate(this.vel.heading());
     }
 
-    // Dynamic color (Cool gradient - Green Theme)
+    // Dynamic color (User Selection)
     colorMode(HSB);
-    // Gradient from bright green (90) to teal (160)
-    let hue = map(this.index, 0, 50, 90, 160);
+    // Use playerHue (global)
+    let hue = (playerHue + (this.index*2)) % 360; // Gradient based on generic HUE
     // Add subtle pulsation to saturation
     let sat = 200 + sin(frameCount * 0.1 + this.index * 0.1) * 55;
     
@@ -26,36 +26,52 @@ class Snake extends Vehicle {
 
     if (this.index === 0) {
       // --- HEAD DRAWING ---
-      fill(80, 255, 200); // Distinct head color
-      // Main head shape
-      ellipse(0, 0, 40, 30);
-
-      // Eyes
-      fill(255); // White sclera
-      ellipse(10, -8, 10, 10);
-      ellipse(10, 8, 10, 10);
+      fill(playerHue, 255, 200); // Main head color
       
-      fill(0); // Black pupil
-      ellipse(12, -8, 4, 4);
-      ellipse(12, 8, 4, 4);
+      // Cyberpunk / Robot Snake look
+      // Outline
+      stroke((playerHue + 120)%360, 255, 255);
+      strokeWeight(2);
+      
+      // Geometrical Head
+      beginShape();
+      vertex(15, 0);
+      vertex(-5, -15);
+      vertex(-15, -10);
+      vertex(-15, 10);
+      vertex(-5, 15);
+      endShape(CLOSE);
 
-      // Tongue (animated flicker)
-      if (frameCount % 20 < 10) {
-        stroke(255, 0, 0);
-        strokeWeight(2);
-        line(20, 0, 30, 0);
-        line(30, 0, 35, -3);
-        line(30, 0, 35, 3);
-        noStroke();
-      }
+      // Glowing Visor Eyes (One strip)
+      noStroke();
+      fill(255, 0, 100); // Neon Pink Eye
+      rect(-5, -5, 15, 10, 2); 
+      
+      // Detail lines
+      stroke(0, 100, 0);
+      strokeWeight(1);
+      line(-5, 0, 10, 0);
+      
     } else {
       // --- BODY DRAWING ---
-      // Body segments shrink slightly towards the tail
-      // But we will keep them somewhat consistent for now
-      let size = map(this.index, 0, 50, 24, 10); 
-      size = max(size, 8); // Minimum size
+      let size = 20;
 
-      ellipse(0, 0, size, size);
+      // Hexagonal Scales Effect
+      noStroke();
+      fill(hue, sat, 200); 
+      
+      // Draw a polygon (Hexagon)
+      beginShape();
+      for (let a = 0; a < TWO_PI; a += TWO_PI / 6) {
+          let sx = cos(a) * (size/2);
+          let sy = sin(a) * (size/2);
+          vertex(sx, sy);
+      }
+      endShape(CLOSE);
+      
+      // Inner light
+      fill(255, 255, 255, 100);
+      circle(0, 0, size/3);
     }
 
     pop();

@@ -75,32 +75,38 @@ class Bomb {
 }
 
 class EnemySnake extends Vehicle {
-  constructor(y, speed) {
-    // choose start x based on direction
-    let startX = (speed < 0) ? width + 50 : -50;
-    super(startX, y);
-    this.vel = createVector(speed, 0);
+  constructor(x, y, vx, vy) {
+    super(x, y);
+    this.vel = createVector(vx, vy);
     this.segments = [];
     this.length = 8;
     this.r = 20;
 
     // Init segments behind the head
+    let dir = this.vel.copy().normalize().mult(-1);
     for (let i = 0; i < this.length; i++) {
-      let xOffset = (this.vel.x > 0) ? -i * 25 : i * 25;
-      this.segments.push(createVector(this.pos.x + xOffset, y));
+      let offset = dir.copy().mult(i * 25);
+      this.segments.push(createVector(this.pos.x + offset.x, this.pos.y + offset.y));
     }
   }
 
   update() {
     // Move head
     this.pos.add(this.vel);
+    
+    let isHorizontal = Math.abs(this.vel.x) > Math.abs(this.vel.y);
 
     // Simple sinusoidal movement for the "Snake" feeling
     for (let i = 0; i < this.length; i++) {
       let seg = this.segments[i];
-      seg.x += this.vel.x;
+      seg.add(this.vel);
       let wave = sin(frameCount * 0.2 + i * 0.5) * 5;
-      seg.y = this.pos.y + wave;
+      
+      if(isHorizontal) {
+          seg.y = this.pos.y + wave;
+      } else {
+          seg.x = this.pos.x + wave;
+      }
     }
   }
 
