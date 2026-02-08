@@ -110,7 +110,8 @@ Ces comportements sont combinés via des poids/coefficients pour obtenir des mou
 
 Méthodologie & Utilisation de l'IA
 
-Dans le cadre de ce projet, nous avons utilisé des assistants IA (notamment Gemini et Claude) pour accélérer le prototypage, explorer différentes idées de comportement et expliciter l'intégration de comportements complexes dans le jeu. Les assistants ont servi principalement à :
+Dans le cadre de ce projet, nous avons utilisé des assistants IA (notamment Gemini et Claude) pour accélérer le prototypage, explorer différentes idées de comportement et expliciter l'intégration de comportements complexes dans le jeu.
+Les assistants ont servi principalement à :
 - Générer des descriptions de design et de comportements.
 - Proposer des architectures de code (séparation des responsabilités, sous-classes).
 - Rédiger des prompts et expliquer l'usage attendu des fichiers existants.
