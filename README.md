@@ -104,8 +104,12 @@ Ces comportements sont combinés via des poids/coefficients pour obtenir des mou
 
 ## ⚠️ Difficultés rencontrées
 
-- Performances de démarrage : certains médias (audio, polices, fichiers volumineux) et le chargement synchrone des scripts peuvent ralentir l'affichage initial.
-
+- Performances de démarrage : Le temps d’affichage initial est dégradé par le chargement anticipé de ressources lourdes et par l’exécution synchrone de scriptsce qui empêche le navigateur d’afficher rapidement le contenu.
+- Conception sonore et adaptation émotionnelle :
+    - **Design des sons de boss :** créer des ambiances de boss convaincantes nécessite plusieurs couches sonores (basse continue, nappes, percussions, impacts) et des transitions soignées entre états (approche, combat, défaite). Trouver des boucles qui se bouclent proprement sans être répétitives a été chronophage.
+    - **Dynamique audio selon l'émotion du jeu :** augmenter la tension (volume, saturation, filtres) lors des phases risquées ou diminuer/assombrir la musique pour créer de la peur demande une logique événementielle (ex : proximité du boss, baisse de vies, apparition d'un hazard). Techniques envisagées : mixage de couches (stems), crossfades, ducking, filtrage passe-bas/haute pour simuler panique ou faiblesse.
+    - **Implémentation technique (p5.sound / WebAudio) :** l'approche recommandée est d'utiliser des pistes séparées (stems) contrôlées par gain nodes, appliquer des filtres et des enveloppes pour les transitions, et utiliser des indicateurs de jeu (événements `bossSpawn`, `lowHealth`, `playerNear`) pour piloter les modifications audio sans coupures abruptes.
+    - **Performance & UX :** les transformations audio temps-réel (filtres, effets) coûtent en CPU; il faut équilibrer qualité et consommation, et prévoir des fallback (réduction des effets) pour machines plus lentes.
 ---
 
 Méthodologie & Utilisation de l'IA
